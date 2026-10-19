@@ -1,0 +1,1 @@
+const i=r=>{if(r)if(r.toString().length>3){let e=[],t=r.toString().split(""),l=0;t.length%3!==0&&(t.unshift("0"),l+=1,t.length%3!==0&&(t.unshift("0"),l+=1)),t.forEach((s,f)=>{f!==0&&f%3===0&&f!==t.length-1&&e.push(","),e.push(s)}),l>0&&e.splice(0,l);let h="";return e.forEach(s=>{h+=s.toString()}),h}else return r;else return null};export{i as f};

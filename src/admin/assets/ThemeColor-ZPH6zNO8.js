@@ -1,0 +1,6 @@
+import{j as e}from"./index-xmcPujHc.js";import{S as r}from"./SyntaxHighlighter-GM-iHFRn.js";import"./toConsumableArray-YYxflNc8.js";import"./objectWithoutPropertiesLoose-pdUxmcoj.js";const l=()=>e.jsxs(e.Fragment,{children:[e.jsxs("p",{children:["برای پیکربندی رنگ پوسته برنامه، می‌توانید به"," ",e.jsx("code",{children:"src/configs/theme.config.ts"})," بروید و مقدار",e.jsx("code",{children:"themeColor"})," و ",e.jsx("code",{children:"primaryColorLevel"})," را بر اساس"," ",e.jsx("a",{href:"https://tailwindcss.com/docs/customizing-colors",rel:"noreferrer",target:"_blank",children:"پالت رنگ پیش‌فرض tailwind"})," ","تغییر دهید."]}),e.jsx(r,{language:"ts",children:`export const themeConfig = {
+        themeColor: 'rose',
+        primaryColorLevel: 500,
+        ...
+    }
+    `}),e.jsxs("p",{children:["به طور کلی، تمامی"," ",e.jsx("a",{href:"https://tailwindcss.com/docs/customizing-colors",rel:"noreferrer",target:"_blank",children:"پالت رنگ پیش‌فرض tailwind"})," ","می‌توانند در themeConfig اعمال شوند، اما از آنجا که همه رنگ‌ها مناسب قالب نیستند، توصیه می‌شود که",e.jsx("code",{children:"primaryColorLevel"})," را در محدوده 400 تا 900 نگه دارید و از رنگ‌های مانند خاکستری پرهیز کنید."]})]});export{l as default};

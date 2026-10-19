@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ثبت خانوار داینامیک</title>
+    <link rel="stylesheet" href="./dist/css/coreui.rtl.min.css">
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .member-card {
+            border: 1px solid #007bff; /* رنگ اصلی بووت‌استرپ برای تمایز */
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            background-color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+
+                <div id="stepLogin" class="card shadow-sm p-4">
+                    <h3 class="text-center mb-4">ورود</h3>
+                    <div id="loginAlert" class="alert d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">نام کاربری</label>
+                        <input type="text" id="username" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">رمز عبور</label>
+                        <input type="password" id="password" class="form-control">
+                    </div>
+                    <button id="loginBtn" class="btn btn-primary">ورود</button>
+                </div>
+
+                <div id="stepFamily" class="hidden card shadow-sm p-4">
+                    <h3 class="mb-4">اطلاعات خانوار 🏠</h3>
+                    <div id="familyAlert" class="alert d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">آدرس کامل</label>
+                        <input type="text" id="address" class="form-control" placeholder="مثال: تهران، خیابان نمونه">
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">موبایل</label>
+                            <input type="text" id="mobile" class="form-control" placeholder="مثال: 09121234567">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">تلفن ثابت</label>
+                            <input type="text" id="tel" class="form-control" placeholder="مثال: 02188888888">
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">عرض جغرافیایی (Latitude)</label>
+                            <input type="number" step="any" id="locationLat" class="form-control" value="35.6892">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">طول جغرافیایی (Longitude)</label>
+                            <input type="number" step="any" id="locationLng" class="form-control" value="51.3890">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">دوره (Period ID)</label>
+                        <input type="text" id="periodId" class="form-control" placeholder="مثال: 691f1a81d0c91efee17cac09">
+                    </div>
+                    <button id="toMembersBtn" class="btn btn-success">مرحله بعد: اعضا</button>
+                </div>
+
+                <div id="stepMembers" class="hidden card shadow-sm p-4">
+                    <h3 class="mb-3">اعضای خانوار 🧑‍🤝‍🧑</h3>
+                    <div id="membersContainer"></div>
+                    <button id="addMemberBtn" class="btn btn-warning mb-4">➕ افزودن عضو</button>
+                    
+                    <h5 class="mt-4">پیش‌نمایش جدول اعضا</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="membersTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>نام</th>
+                                    <th>نام خانوادگی</th>
+                                    <th>نام پدر</th>
+                                    <th>تاریخ تولد</th>
+                                    <th>جنسیت</th>
+                                    <th>نقش</th>
+                                    <th>تابعیت</th>
+                                    <th>شغل</th>
+                                    <th>ولسوالی</th>
+                                    <th>مدرک (کد)</th>
+                                    <th>تأهل</th>
+                                    <th>تخصص</th>
+                                    <th>دین</th>
+                                    <th>قومیت</th>
+                                    <th>تحصیلات</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <h5 class="mt-4">JSON آماده ارسال</h5>
+                    <pre id="jsonPreview" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #ddd; overflow-x: auto;"></pre>
+                    <button id="submitBtn" class="btn btn-primary btn-lg mt-3">ثبت نهایی خانوار</button>
+                    <div id="submitAlert" class="alert d-none mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let PARAMS = [];
+        let JOBS = [];
+        let DISTRICTS = []; // اضافه شدن آرایه ولسوالی‌ها
+        let JWT_TOKEN = "";
+        let memberCount = 0;
+        let membersData = [];
+
+        // ================== توابع کمکی تبدیل کد به مقدار ==================
+        function getParamValue(categoryLabel, code) {
+            const category = PARAMS.find(p => p.label === categoryLabel);
+            if (!category || !code) return code || '';
+            const item = category.items.find(i => i.code === code);
+            return item ? item.value : code;
+        }
+
+        function getJobTitle(code) {
+            const job = JOBS.find(j => j.code === code);
+            return job ? job.title : code;
+        }
+
+        function getDistrictTitle(code) {
+            const district = DISTRICTS.find(d => d.code === code);
+            return district ? district.title : code;
+        }
+
+        // ================== واکشی پارامترها، شغل‌ها و ولسوالی‌ها از سرور ==================
+        async function fetchParamsAndJobs() {
+            if (!JWT_TOKEN) throw new Error("توکن ورود یافت نشد!");
+
+            const query = `
+                query {
+                    allParamsAndJobs {
+                        PARAMS {
+                            label
+                            name
+                            items {
+                                code
+                                value
+                            }
+                        }
+                        JOBS {
+                            code
+                            title
+                        }
+                        DISTRICTS {
+                            code
+                            title
+                        }
+                    }
+                }
+            `;
+
+            try {
+                const res = await fetch('/graphql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + JWT_TOKEN
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await res.json();
+                if (data.errors) throw new Error(data.errors.map(e => e.message).join(", "));
+
+                PARAMS = data.data.allParamsAndJobs.PARAMS.map(cat => ({
+                    label: cat.label,
+                    name: cat.name,
+                    items: cat.items || []
+                }));
+
+                JOBS = data.data.allParamsAndJobs.JOBS || [];
+                DISTRICTS = data.data.allParamsAndJobs.DISTRICTS || [];
+            } catch (err) {
+                console.error("خطا در واکشی پارامترها و شغل‌ها:", err);
+                throw err;
+            }
+        }
+
+        // ================== مرحله 1: Login ==================
+        document.getElementById('loginBtn').onclick = async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const alertBox = document.getElementById('loginAlert');
+            alertBox.classList.add('d-none');
+
+            if (!username || !password) {
+                alertBox.textContent = "نام کاربری و رمز الزامی است";
+                alertBox.classList.remove('d-none');
+                alertBox.classList.add('alert-warning');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/sign-in', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const result = await res.json();
+                if (!result.token) throw new Error("توکن یافت نشد");
+
+                JWT_TOKEN = result.token;
+                await fetchParamsAndJobs();
+
+                document.getElementById('stepLogin').classList.add('hidden');
+                document.getElementById('stepFamily').classList.remove('hidden');
+            } catch (e) {
+                console.error(e);
+                alertBox.textContent = "خطا در ورود یا واکشی داده‌ها";
+                alertBox.classList.remove('d-none');
+                alertBox.classList.add('alert-danger');
+            }
+        };
+
+        // ================== مرحله 2: اطلاعات خانوار ==================
+        document.getElementById('toMembersBtn').onclick = () => {
+            const addr = document.getElementById('address').value;
+            const lat = parseFloat(document.getElementById('locationLat').value);
+            const lng = parseFloat(document.getElementById('locationLng').value);
+            const period = document.getElementById('periodId').value;
+            const mobile = document.getElementById('mobile').value;
+            const tel = document.getElementById('tel').value;
+            
+            const alertBox = document.getElementById('familyAlert');
+            alertBox.classList.add('d-none');
+
+            if (!addr || isNaN(lat) || isNaN(lng) || !period || !mobile) {
+                alertBox.textContent = "لطفاً آدرس، موقعیت جغرافیایی، موبایل و دوره را پر کنید";
+                alertBox.classList.remove('d-none');
+                alertBox.classList.add('alert-warning');
+                return;
+            }
+
+            document.getElementById('stepFamily').classList.add('hidden');
+            document.getElementById('stepMembers').classList.remove('hidden');
+            if (memberCount === 0) { // فقط در اولین بار یک عضو اضافه شود
+                addMember();
+            } else {
+                updateTable(); // در غیر این صورت فقط جدول به‌روز شود
+            }
+        };
+
+        // ================== ایجاد فرم عضو ==================
+        function addMember() {
+            memberCount++;
+            const id = "member-" + memberCount;
+            const container = document.getElementById('membersContainer');
+            const div = document.createElement('div');
+            div.className = "member-card";
+            div.id = id;
+
+            // 1. اطلاعات پایه
+            let html = `
+                <h4>عضو شماره ${memberCount}</h4>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3"><input type="text" class="form-control firstName" placeholder="نام"></div>
+                    <div class="col-md-3"><input type="text" class="form-control lastName" placeholder="نام خانوادگی"></div>
+                    <div class="col-md-3"><input type="text" class="form-control fatherName" placeholder="نام پدر"></div>
+                    <div class="col-md-3"><input type="text" class="form-control dateOfBirth" placeholder="تاریخ تولد (مثال: 1370/01/01)"></div>
+                </div>
+                
+                <div class="row g-3 mb-3">`;
+
+            PARAMS.forEach(p => {
+                html += `<div class="col-md-3">
+                    <label class="form-label">${p.name}</label>
+                    <select class="form-select ${p.label}">
+                        <option value="" disabled selected>انتخاب کنید</option>
+                        ${p.items.map(i => `<option value="${i.code}">${i.value}</option>`).join('')}
+                    </select>
+                </div>`;
+            });
+
+            // افزودن شغل و ولسوالی
+            html += `<div class="col-md-3">
+                <label class="form-label">شغل</label>
+                <select class="form-select job">
+                    <option value="" disabled selected>انتخاب شغل</option>
+                    ${JOBS.map(j => `<option value="${j.code}">${j.title}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">ولسوالی</label>
+                <select class="form-select district">
+                    <option value="" disabled selected>انتخاب ولسوالی</option>
+                    ${DISTRICTS.map(j => `<option value="${j.code}">${j.title}</option>`).join('')}
+                </select>
+            </div>
+            </div>`;
+            
+            // 3. فیلدهای متنی و عددی جدید برای اعضا
+            html += `
+            <hr>
+            <h6>جزئیات تکمیلی عضو</h6>
+            <div class="row g-3 mb-3">
+                <div class="col-md-3"><input type="text" class="form-control CertNum" placeholder="شماره مدرک"></div>
+                <div class="col-md-3"><input type="number" class="form-control childs" placeholder="تعداد فرزندان" value="0"></div>
+                <div class="col-md-3"><input type="text" class="form-control resduration" placeholder="مدت اقامت قبلی"></div>
+                <div class="col-md-3"><input type="text" class="form-control curResDuration" placeholder="مدت اقامت فعلی"></div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-3"><input type="text" class="form-control empname" placeholder="نام کارفرما"></div>
+                <div class="col-md-3"><input type="text" class="form-control emptel" placeholder="تلفن کارفرما"></div>
+                <div class="col-md-6"><input type="text" class="form-control jobaddress" placeholder="آدرس محل کار"></div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-check-label d-block mb-1">صحت مدرک</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input certvalid" type="radio" name="certvalid-${memberCount}" id="certvalid-yes-${memberCount}" value="true" checked>
+                        <label class="form-check-label" for="certvalid-yes-${memberCount}">بلی</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input certvalid" type="radio" name="certvalid-${memberCount}" id="certvalid-no-${memberCount}" value="false">
+                        <label class="form-check-label" for="certvalid-no-${memberCount}">خیر</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-check-label d-block mb-1">ورود قانونی</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input entrance" type="radio" name="entrance-${memberCount}" id="entrance-yes-${memberCount}" value="true" checked>
+                        <label class="form-check-label" for="entrance-yes-${memberCount}">بلی</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input entrance" type="radio" name="entrance-${memberCount}" id="entrance-no-${memberCount}" value="false">
+                        <label class="form-check-label" for="entrance-no-${memberCount}">خیر</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-check-label d-block mb-1">مجوز کار</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input wpermit" type="radio" name="wpermit-${memberCount}" id="wpermit-yes-${memberCount}" value="true" checked>
+                        <label class="form-check-label" for="wpermit-yes-${memberCount}">بلی</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input wpermit" type="radio" name="wpermit-${memberCount}" id="wpermit-no-${memberCount}" value="false">
+                        <label class="form-check-label" for="wpermit-no-${memberCount}">خیر</label>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-danger btn-sm mt-2 remove-member">حذف عضو</button>`;
+
+            div.innerHTML = html;
+            container.appendChild(div);
+            updateTable();
+        }
+
+        // ================== حذف عضو ==================
+        document.getElementById('membersContainer').addEventListener('click', e => {
+            if (e.target.classList.contains('remove-member')) {
+                if (document.querySelectorAll('.member-card').length === 1) {
+                    alert('حداقل یک عضو برای خانوار الزامی است.');
+                    return;
+                }
+                e.target.closest('.member-card').remove();
+                // به‌روزرسانی شماره‌های عضو
+                document.querySelectorAll('.member-card h4').forEach((h4, index) => {
+                    h4.textContent = `عضو شماره ${index + 1}`;
+                });
+                updateTable();
+            }
+        });
+
+        // ================== افزودن عضو ==================
+        document.getElementById('addMemberBtn').onclick = () => addMember();
+
+        // ================== ساخت جدول و JSON نهایی ==================
+        function updateTable() {
+            const tbody = document.querySelector('#membersTable tbody');
+            tbody.innerHTML = "";
+            membersData = [];
+
+            document.querySelectorAll('.member-card').forEach(card => {
+                const firstName = card.querySelector('.firstName')?.value || "";
+                const lastName = card.querySelector('.lastName')?.value || "";
+                const fatherName = card.querySelector('.fatherName')?.value || "";
+                const dob = card.querySelector('.dateOfBirth')?.value || "";
+
+                // پارامترهای اصلی
+                const gender = card.querySelector('.gender')?.value || "";
+                const role = card.querySelector('.roleInFamily')?.value || "";
+                const nationality = card.querySelector('.nationality')?.value || "";
+                const job = card.querySelector('.job')?.value || "";
+                const district = card.querySelector('.district')?.value || "";
+
+                // پارامترهای جدید
+                const religion = card.querySelector('.religion')?.value || "";
+                const ethnicity = card.querySelector('.ethnicity')?.value || "";
+                const education = card.querySelector('.education')?.value || "";
+                const residence = card.querySelector('.residence')?.value || "";
+                const expertise = card.querySelector('.expertise')?.value || "";
+                const maritalStatus = card.querySelector('.maritalStatus')?.value || "";
+                
+                // فیلدهای تکمیلی
+                const CertNum = card.querySelector('.CertNum')?.value || "";
+                const certvalid = card.querySelector('.certvalid:checked')?.value === 'true';
+                const childs = parseInt(card.querySelector('.childs')?.value) || 0;
+                const entrance = card.querySelector('.entrance:checked')?.value === 'true';
+                const resduration = card.querySelector('.resduration')?.value || "";
+                const curResDuration = card.querySelector('.curResDuration')?.value || "";
+                const empname = card.querySelector('.empname')?.value || "";
+                const emptel = card.querySelector('.emptel')?.value || "";
+                const jobaddress = card.querySelector('.jobaddress')?.value || "";
+                const wpermit = card.querySelector('.wpermit:checked')?.value === 'true';
+                
+                // نمایش در جدول (استفاده از مقادیر متنی)
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${firstName}</td>
+                        <td>${lastName}</td>
+                        <td>${fatherName}</td>
+                        <td>${dob}</td>
+                        <td>${getParamValue('gender', gender)}</td>
+                        <td>${getParamValue('roleInFamily', role)}</td>
+                        <td>${getParamValue('nationality', nationality)}</td>
+                        <td>${getJobTitle(job)}</td>
+                        <td>${getDistrictTitle(district)}</td>
+                        <td>${CertNum}</td>
+                        <td>${getParamValue('maritalStatus', maritalStatus)}</td>
+                        <td>${getParamValue('expertise', expertise)}</td>
+                        <td>${getParamValue('religion', religion)}</td>
+                        <td>${getParamValue('ethnicity', ethnicity)}</td>
+                        <td>${getParamValue('education', education)}</td>
+                    </tr>`;
+
+                // ساختار JSON برای ارسال (استفاده از کدهای عددی)
+                membersData.push({
+                    firstName,
+                    lastName,
+                    fatherName,
+                    dateOfBirth: dob,
+
+                    genderCode: gender,
+                    roleInFamilyCode: role,
+                    nationalityCode: nationality,
+                    jobCode: job,
+                    districtCode: district, // اضافه شدن کد ولسوالی
+
+                    religionCode: religion,
+                    ethnicityCode: ethnicity,
+                    educationCode: education,
+                    residenceCode: residence,
+                    expertiseCode: expertise,
+                    maritalStatusCode: maritalStatus,
+                    
+                    CertNum,
+                    certvalid,
+                    childs,
+                    entrance,
+                    resduration,
+                    curResDuration,
+                    empname,
+                    emptel,
+                    jobaddress,
+                    wpermit
+                });
+            });
+
+            // ساخت JSON نهایی برای پیش‌نمایش
+            const json = {
+                address: document.getElementById('address').value,
+                mobile: document.getElementById('mobile').value, // اضافه شدن
+                tel: document.getElementById('tel').value, // اضافه شدن
+                location: [
+                    parseFloat(document.getElementById('locationLng').value),
+                    parseFloat(document.getElementById('locationLat').value)
+                ],
+                periodId: document.getElementById('periodId').value,
+                members: membersData
+            };
+
+            document.getElementById('jsonPreview').textContent = JSON.stringify(json, null, 2);
+        }
+
+        // ================== نهایی: ارسال به سرور ==================
+        document.getElementById('submitBtn').onclick = async () => {
+            updateTable();
+            const alertBox = document.getElementById('submitAlert');
+            alertBox.classList.remove('alert-success', 'alert-danger', 'alert-warning');
+            alertBox.classList.add('d-none');
+
+            try {
+                if (!JWT_TOKEN) throw new Error("توکن ورود یافت نشد!");
+
+                // ساخت JSON خانوار برای ارسال
+                const familyInput = {
+                    address: document.getElementById('address').value,
+                    mobile: document.getElementById('mobile').value,
+                    tel: document.getElementById('tel').value,
+                    location: [
+                        parseFloat(document.getElementById('locationLng').value),
+                        parseFloat(document.getElementById('locationLat').value)
+                    ],
+                    periodId: document.getElementById('periodId').value,
+                    members: membersData
+                };
+                
+                // بررسی خالی نبودن اعضا قبل از ارسال
+                if (membersData.length === 0) throw new Error("لطفاً حداقل یک عضو برای خانوار ثبت کنید.");
+                
+                // بررسی پر بودن فیلدهای اجباری برای مثال ساده
+                const firstMember = membersData[0];
+                if (!firstMember.firstName || !firstMember.lastName) throw new Error("نام و نام خانوادگی عضو اول اجباری است.");
+
+                const query = `
+                    mutation createFamilyWithMembers($familyInput: FamilyWithMembersInput!) {
+                        createFamilyWithMembers(familyInput: $familyInput) {
+                            familyId
+                            trackingCode
+                            members {
+                                id
+                                CertNum
+                                certvalid
+                                childs
+                                entrance
+                                resduration
+                                curResDuration
+                                empname
+                                emptel
+                                jobaddress
+                                wpermit
+                                person { personCode firstName lastName fatherName dateOfBirth gender { code value } }
+                                roleInFamily { code value }
+                                nationality { code value }
+                                religion { code value }
+                                maritalStatus { code value }
+                                ethnicity { code value }
+                                education { code value }
+                                residence { code value }
+                                expertise { code value }
+                                job { code title }
+                                district { code title }
+                            }
+                        }
+                    }
+                `;
+
+                const res = await fetch('/graphql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'token':  JWT_TOKEN 
+                    },
+                    body: JSON.stringify({ query, variables: { familyInput } })
+                });
+
+                const data = await res.json();
+                if (data.errors) throw new Error(data.errors.map(e => e.message).join(", "));
+
+                console.log("خانوار ثبت شد:", data.data.createFamilyWithMembers);
+
+                alertBox.textContent = `✅ خانوار با کد رهگیری ${data.data.createFamilyWithMembers.trackingCode} با موفقیت ثبت شد!`;
+                alertBox.classList.remove('d-none');
+                alertBox.classList.add('alert-success');
+
+            } catch (e) {
+                console.error(e);
+                alertBox.textContent = "❌ خطا در ارسال: " + e.message;
+                alertBox.classList.remove('d-none');
+                alertBox.classList.add('alert-danger');
+            }
+        };
+
+        // ================== بروزرسانی جدول هنگام تغییر فرم ==================
+        document.getElementById('membersContainer').addEventListener('input', updateTable);
+
+        // ================== مقداردهی اولیه (اختیاری) ==================
+        document.addEventListener('DOMContentLoaded', () => {
+             // مقادیر پیش‌فرض برای تست
+            document.getElementById('username').value = 'admin';
+            document.getElementById('password').value = 'admin123';
+            document.getElementById('address').value = 'تهران، خیابان نمونه';
+            document.getElementById('mobile').value = '09123456789';
+            document.getElementById('periodId').value = '691f3baed19d4d6db470b3f3';
+        });
+
+    </script>
+</body>
+
+</html>

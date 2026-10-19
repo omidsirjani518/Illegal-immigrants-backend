@@ -1,0 +1,126 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="fa" id="htmlTag">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>چت حرفه‌ای با ریپلای، پرش و ضبط صدا</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="updateAvatar()">
+
+
+    <div id="login">
+        <h2>ثبت نام / ورود</h2>
+        <form id="loginForm" onsubmit="event.preventDefault(); login();">
+            <input id="username" placeholder="نام کاربری" required autocomplete="username"><br>
+            <input id="password" placeholder="رمز عبور" type="password" required autocomplete="current-password"><br>
+            <button type="submit">ورود</button>
+            <button type="button" onclick="register()">ثبت نام</button>
+        </form>
+        <div id="loginMsg" style="color:red; margin-top:10px;"></div>
+    </div>
+
+    <div id="chat" style="display:none;">
+
+        <div id="userInfo">
+            <img id="userAvatarDisplay" class="avatar" src="" alt="Avatar" onclick="triggerAvatarChange()">
+            
+
+            <div id="header-text">
+                <span id="usernameDisplay">نام کاربری من</span>
+
+                <span id="typingStatus" style="display: none; font-size: 0.9em; color: #888;"></span>
+            </div>
+
+            <button id="themeToggle" onclick="toggleTheme()">
+                <i class="fas fa-moon"></i> 
+            </button>
+        </div>
+
+        <div id="chat-container">
+
+            <div id="onlineUsers">
+                <b>انتخاب چت:</b>
+                <div id="userList">
+                    <div class="user-item selected" id="public-chat-item" onclick="selectUserForChat('')">
+                        <i class="fa-solid fa-users" style="font-size:1.2em;"></i>
+                        <span style="font-weight:bold;">عمومی</span>
+                        <span class="unread-count" id="public-unread-count" style="display:none;">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="main-chat-area">
+
+                <div id="messages"></div>
+
+                <div id="emoji-panel" style="display: none;">
+                </div>
+
+                <div id="replyBar" style="display:none;">
+                    <div id="replyContent"></div>
+                    <button onclick="cancelReply()"
+                        style="background:none; border:none; cursor:pointer; font-size:1.1em; color:#888;"><i
+                            class="fa-solid fa-xmark"></i>x</button>
+                </div>
+
+                <div id="input-bar-container">
+                    
+
+                    <button id="emoji-button" onclick="toggleEmojiPanel()" title="ایموجی" type="button">
+                        <i class="fa-regular fa-face-smile"></i>
+                    </button>
+
+                    <label for="file" id="file-label" title="آپلود فایل">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </label>
+
+                    <div id="loadingIndicator" style="display: none;">
+                        <span class="loading-spinner"></span>
+                        <span class="loading-text" id="loadingText">در حال آپلود...</span>
+                    </div>
+
+                    <div id="text-and-file-area">
+                        <input type="file" id="file" onchange="updateFileNameDisplay()">
+
+                        <textarea id="text" rows="1" placeholder="پیام خود را بنویسید"></textarea>
+                    </div>
+                    
+                    <div id="record-status">🔴 در حال ضبط...
+
+                        
+                    </div>
+
+                    <button id="stop-recording-button" onclick="stopRecording()" title="توقف ضبط">
+                        <i class="fa-solid fa-square-full"></i>
+                    </button>
+
+                    <button id="send-button" onclick="sendMessage()">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+
+                    <button id="record-button" onclick="startRecording()" title="ضبط صدا">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="script.js"></script>
+
+    
+</body>
+
+</html>

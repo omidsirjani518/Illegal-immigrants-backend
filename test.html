@@ -1,0 +1,18 @@
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io("https://localhost:4443", { transports: ["websocket"], secure: true, rejectUnauthorized: false });
+
+  socket.on("connect", () => {
+    console.log("Connected:", socket.id);
+
+    socket.emit("login", "12345");
+  });
+
+  socket.on("loginSuccess", (data) => {
+    console.log("LOGIN SUCCESS:", data);
+  });
+
+  socket.on("userOnline", (data) => {
+    console.log("USER ONLINE:", data);
+  });
+</script>
